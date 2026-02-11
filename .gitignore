@@ -1,6 +1,12 @@
 # Virtual environment
-venv/
 .venv/
+venv/
+
+# Dataset
+data/raw/
+
+# Model files
+models/url_rf_model.pkl
 
 # Python cache
 __pycache__/
@@ -8,10 +14,3 @@ __pycache__/
 
 # Jupyter
 .ipynb_checkpoints/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Trained model files
-models/*.pkl

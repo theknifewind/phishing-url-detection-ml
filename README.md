@@ -1,70 +1,170 @@
-# Phishing Website Risk Detection using Machine Learning
+# 🛡️ Phishing URL Detection System
 
-## 📌 Project Overview
-This project implements a **Machine Learning–based phishing website detection system** that predicts the **risk level of a website** using **URL and domain-level features**.  
-Instead of only giving a binary output (phishing / legitimate), the system produces a **probability-based phishing risk score**, making it more suitable for real-world security applications.
+A **machine learning–based phishing URL detection system** that classifies URLs as **PHISHING** or **LEGITIMATE** using only **URL-based features** — no webpage fetching, no external APIs.
 
----
-
-## 🎯 Objectives
-- Detect phishing websites using machine learning
-- Compare a baseline model with a stronger ensemble model
-- Generate **risk scores** instead of only binary predictions
-- Build an **explainable and reproducible ML pipeline**
+The system is designed with a **security-first approach**, making fast, offline predictions using interpretable machine learning.
 
 ---
 
-## 🧠 Machine Learning Approach
+## 🚀 Key Highlights
 
-### Problem Type
-- **Supervised Binary Classification**
-- Target variable:
-  - `0` → Legitimate website
-  - `1` → Phishing website
-
-### Dataset
-- URL and domain-based dataset with **pre-extracted features**
-- Total features: **111**
-- Feature types include:
-  - URL length and structure
-  - Directory depth
-  - Domain age and expiration
-  - DNS and hosting characteristics
-- Feature extraction was already performed in the dataset; this project focuses on **modeling and evaluation**.
+- 🔍 URL-only phishing detection  
+- ⚡ Fast, offline predictions  
+- 🌲 Random Forest classifier  
+- 🧠 19 handcrafted, interpretable URL features  
+- 📊 ~99% accuracy on benchmark dataset  
+- 💻 Command-line tool + Python API  
 
 ---
 
-## 🔍 Exploratory Data Analysis (EDA)
-- Checked dataset shape and structure
-- Verified absence of missing values
-- Identified and removed duplicate rows
-- Analyzed class distribution to handle imbalance
-- Confirmed dataset suitability for supervised learning
+## 📊 Model Performance
+
+```
+
+Accuracy:  99.17%
+Precision: 99.80%
+Recall:    98.27%
+F1-Score:  99.03%
+ROC-AUC:   99.73%
+
+```
+
+> ⚠️ Metrics are dataset-based.  
+> In real-world usage, **rare false positives may occur**, especially for unusual or legacy URLs.  
+> This is an intentional tradeoff to prioritize phishing detection.
 
 ---
 
-## 🏗️ Model Pipeline
+## 🧠 How It Works
 
-### 1️⃣ Baseline Model: Logistic Regression
-- Used as a **baseline classifier**
-- Helped validate dataset quality and pipeline correctness
-- Achieved high phishing recall but lower precision due to linear limitations
+### Feature Engineering (19 Features)
 
-### 2️⃣ Final Model: Random Forest Classifier
-- Handles non-linear feature interactions
-- Works well with high-dimensional tabular data
-- Does not require feature scaling
-- Provides feature importance for explainability
+The model analyzes **lexical and structural properties** of URLs, including:
 
-#### Final Performance (Large Dataset)
-- **Accuracy:** ~97%
-- **High precision and recall for both phishing and legitimate classes**
-- Significantly outperformed Logistic Regression
+- URL length, domain length, subdomains
+- HTTPS usage and suspicious TLDs
+- Digits, special characters, hyphens
+- IP-based domains and redirect patterns
+- Brand name and phishing keyword heuristics
+
+No webpage content is fetched.
 
 ---
 
-## ⚠️ Risk Scoring System
-Instead of only predicting classes, the model outputs a **phishing probability score** using:
+### Machine Learning Model
+
+- **Algorithm**: Random Forest Classifier  
+- **Trees**: 100  
+- **Max Depth**: 10  
+- **Class Weight**: Balanced  
+- **Training Data**: ~235,000 URLs  
+
+Random Forest was chosen for its robustness, interpretability, and strong performance on tabular data.
+
+---
+
+## 📁 Project Structure
+
+```
+
+phishing-url-detection/
+│
+├── data/
+│   └── raw/
+│       └── PhiUSIIL_Phishing_URL_Dataset.csv
+│
+├── models/
+│   └── url_rf_model.pkl
+│
+├── src/
+│   ├── phishing_detection_training.ipynb
+│   ├── features.py
+│   └── predict_url.py
+│
+├── requirements.txt
+└── README.md
+
+````
+
+---
+
+## ⚙️ Setup & Installation
+
+```bash
+git clone https://github.com/theknifewind/phishing-url-detection.git
+cd phishing-url-detection
+pip install -r requirements.txt
+````
+
+Place the dataset at:
+
+```
+data/raw/PhiUSIIL_Phishing_URL_Dataset.csv
+```
+
+---
+
+## 🏋️ Train the Model
+
+```bash
+cd src
+jupyter notebook phishing_detection_training.ipynb
+```
+
+Running the notebook will:
+
+* Extract features
+* Train the model
+* Evaluate performance
+* Save the trained model
+
+---
+
+## 🔮 Predict URLs
+
+### Command Line (Interactive)
+
+```bash
+cd src
+python predict_url.py -i
+```
+
+Example output:
+
+```
+[OK] LEGITIMATE (Risk: 3.7%)
+[!] PHISHING   (Risk: 99.9%)
+```
+
+---
+
+### Python API
 
 ```python
-predict_proba()
+from predict_url import load_model, predict_url
+
+model = load_model()
+result = predict_url(model, "https://www.google.com")
+
+print(result["prediction"], result["risk_score"])
+```
+
+---
+
+## ⚠️ Design Note
+
+This system **prioritizes security over convenience**.
+
+* Some legitimate URLs may resemble phishing patterns
+* This reduces the risk of missing real phishing attacks
+* In production systems, such models are combined with allowlists and reputation checks
+
+---
+
+## ⭐ Acknowledgments
+
+* PhiUSIIL Phishing URL Dataset
+* scikit-learn, pandas, numpy
+
+---
+
