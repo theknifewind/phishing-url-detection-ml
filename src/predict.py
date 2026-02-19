@@ -32,6 +32,126 @@ def load_model(model_path: Path = None):
         raise RuntimeError(f"Failed to load model: {e}")
 
 
+def analyze_features(features: dict, feature_importance: dict) -> list:
+    """
+    Analyze which features contribute most to phishing detection.
+    Returns list of suspicious features with explanations.
+    """
+    reasons = []
+    
+    # Define thresholds and explanations for suspicious features
+    feature_checks = {
+        "IsDomainIP": {
+            "threshold": 1,
+            "operator": "==",
+            "reason": "Domain is an IP address (common in phishing)"
+        },
+        "URLLength": {
+            "threshold": 75,
+            "operator": ">",
+            "reason": f"Unusually long URL ({features.get('URLLength', 0)} characters)"
+        },
+        "SuspiciousTLD": {
+            "threshold": 1,
+            "operator": "==",
+            "reason": "Uses suspicious TLD (.xyz, .tk, .ml, etc.)"
+        },
+        "HasHTTPS": {
+            "threshold": 0,
+            "operator": "==",
+            "reason": "Not using HTTPS (insecure connection)"
+        },
+        "TrustedBrandOnHTTP": {
+            "threshold": 1,
+            "operator": "==",
+            "reason": "Brand name in subdomain without HTTPS"
+        },
+        "SubdomainLevel": {
+            "threshold": 2,
+            "operator": ">=",
+            "reason": f"Multiple subdomains ({features.get('SubdomainLevel', 0)} levels)"
+        },
+        "HasAtSymbol": {
+            "threshold": 1,
+            "operator": "==",
+            "reason": "Contains @ symbol (URL obfuscation technique)"
+        },
+        "DoubleSlashRedirecting": {
+            "threshold": 1,
+            "operator": "==",
+            "reason": "Multiple // in URL (redirect obfuscation)"
+        },
+        "URLSimilarityIndex": {
+            "threshold": 40,
+            "operator": ">",
+            "reason": f"High similarity to phishing keywords ({features.get('URLSimilarityIndex', 0):.1f}%)"
+        },
+        "PathDepth": {
+            "threshold": 4,
+            "operator": ">",
+            "reason": f"Deep path structure ({features.get('PathDepth', 0)} levels)"
+        },
+        "DigitCount": {
+            "threshold": 8,
+            "operator": ">",
+            "reason": f"Many digits in URL ({features.get('DigitCount', 0)})"
+        },
+        "SpecialCharCount": {
+            "threshold": 6,
+            "operator": ">",
+            "reason": f"Many special characters ({features.get('SpecialCharCount', 0)})"
+        },
+        "HyphenCount": {
+            "threshold": 3,
+            "operator": ">",
+            "reason": f"Multiple hyphens in domain ({features.get('HyphenCount', 0)})"
+        },
+        "TLDLegitimateProb": {
+            "threshold": 0.5,
+            "operator": "<",
+            "reason": f"Low trust TLD (legitimacy: {features.get('TLDLegitimateProb', 0):.2f})"
+        },
+        "CharContinuationRate": {
+            "threshold": 0.15,
+            "operator": ">",
+            "reason": "High character repetition rate"
+        }
+    }
+    
+    # Check each feature
+    for feature_name, check in feature_checks.items():
+        if feature_name not in features:
+            continue
+            
+        value = features[feature_name]
+        threshold = check["threshold"]
+        operator = check["operator"]
+        
+        is_suspicious = False
+        if operator == "==":
+            is_suspicious = (value == threshold)
+        elif operator == ">":
+            is_suspicious = (value > threshold)
+        elif operator == ">=":
+            is_suspicious = (value >= threshold)
+        elif operator == "<":
+            is_suspicious = (value < threshold)
+        
+        if is_suspicious:
+            # Get feature importance if available
+            importance = feature_importance.get(feature_name, 0)
+            reasons.append({
+                "feature": feature_name,
+                "reason": check["reason"],
+                "importance": importance
+            })
+    
+    # Sort by importance (most important first)
+    reasons.sort(key=lambda x: x["importance"], reverse=True)
+    
+    return reasons
+
+
 def predict_url(model_bundle: dict, url: str) -> dict:
     """
     Predict phishing risk for a single URL.
@@ -76,12 +196,24 @@ def predict_url(model_bundle: dict, url: str) -> dict:
         else:
             risk_level = "SAFE"
 
+        # Get feature importances from model
+        feature_importance_dict = {}
+        if hasattr(model, "feature_importances_"):
+            importances = model.feature_importances_
+            for feature, importance in zip(feature_names, importances):
+                feature_importance_dict[feature] = importance
+        
+        # Analyze features to get reasons
+        reasons = analyze_features(features, feature_importance_dict)
+
         return {
             "url": url,
             "prediction": prediction,
             "risk_score": round(risk_score, 4),
             "risk_level": risk_level,
             "confidence": round(max(risk_score, 1 - risk_score), 4),
+            "reasons": reasons,
+            "features": features
         }
     except Exception as e:
         raise RuntimeError(f"Failed to predict URL '{url}': {e}")
@@ -93,29 +225,36 @@ def interactive_mode(model_bundle: dict):
     print("  PHISHING URL DETECTOR - Manual URL Entry")
     print("=" * 60)
     print("  Enter URLs to check. Type 'quit' or 'q' to exit.")
+    print("  Add '--debug' after URL to see all features.")
     print("=" * 60 + "\n")
 
     while True:
         try:
-            url = input("Enter URL: ").strip()
+            url_input = input("Enter URL: ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nExiting.")
             break
 
-        if not url:
+        if not url_input:
             continue
-        if url.lower() in ("quit", "q", "exit"):
+        if url_input.lower() in ("quit", "q", "exit"):
             print("Exiting.")
             break
 
+        # Check for debug flag
+        show_debug = False
+        if "--debug" in url_input:
+            url_input = url_input.replace("--debug", "").strip()
+            show_debug = True
+
         try:
-            result = predict_url(model_bundle, url)
-            _print_result(result)
+            result = predict_url(model_bundle, url_input)
+            _print_result(result, show_all_features=show_debug)
         except Exception as e:
             print(f"  Error: {e}\n")
 
 
-def _print_result(result: dict):
+def _print_result(result: dict, show_all_features: bool = False):
     """Pretty-print prediction result."""
     risk = result["risk_score"]
     level = result["risk_level"]
@@ -131,7 +270,39 @@ def _print_result(result: dict):
 
     print(f"\n  {icon} {status}")
     print(f"     Risk Level: {level}")
-    print(f"     Confidence: {result['confidence']:.2%}\n")
+    print(f"     Confidence: {result['confidence']:.2%}")
+    
+    # Display reasons if phishing or high risk
+    reasons = result.get("reasons", [])
+    
+    if pred == "PHISHING":
+        if reasons:
+            print(f"\n     Suspicious Indicators:")
+            # Show top 5 reasons
+            for i, reason_info in enumerate(reasons[:5], 1):
+                print(f"       {i}. {reason_info['reason']}")
+        else:
+            print(f"\n     Note: Model prediction based on learned patterns.")
+            print(f"     No individual features exceeded thresholds.")
+            
+        # Show key features in debug mode
+        if show_all_features:
+            features = result.get("features", {})
+            print(f"\n     Key Feature Values:")
+            key_features = ["URLLength", "HasHTTPS", "HasBrandName", "TLDLegitimateProb", 
+                           "SubdomainLevel", "PathDepth", "SuspiciousTLD", "URLSimilarityIndex",
+                           "DigitCount", "SpecialCharCount", "HyphenCount"]
+            for feat in key_features:
+                if feat in features:
+                    print(f"       - {feat}: {features[feat]}")
+                    
+    elif risk > 0.3:
+        if reasons:
+            print(f"\n     Suspicious Indicators:")
+            for i, reason_info in enumerate(reasons[:5], 1):
+                print(f"       {i}. {reason_info['reason']}")
+    
+    print()
 
 
 def main():
@@ -154,6 +325,11 @@ def main():
         action="store_true",
         help="Run in interactive mode for manual URL entry",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Show all feature values for predictions",
+    )
     args = parser.parse_args()
 
     try:
@@ -172,7 +348,7 @@ def main():
     for url in args.urls:
         try:
             result = predict_url(model_bundle, url)
-            _print_result(result)
+            _print_result(result, show_all_features=args.debug)
         except Exception as e:
             print(f"Error for {url}: {e}", file=sys.stderr)
 
