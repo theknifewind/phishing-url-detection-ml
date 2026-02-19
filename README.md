@@ -96,7 +96,7 @@ phishing-url-detection/
 ├── src/
 │   ├── training.ipynb
 │   ├── features.py
-│   └── predict_url.py
+│   └── predict.py
 │
 ├── requirements.txt
 └── README.md
@@ -106,8 +106,8 @@ phishing-url-detection/
 
 ## ⚙️ Setup & Installation
 ```bash
-git clone https://github.com/theknifewind/phishing-url-detection.git
-cd phishing-url-detection
+git clone https://github.com/theknifewind/phishing-url-detection-ml.git
+cd phishing-url-detection-ml
 pip install -r requirements.txt
 ```
 
@@ -123,7 +123,7 @@ data/raw/PhiUSIIL_Phishing_URL_Dataset.csv
 ## 🏋️ Train the Model
 ```bash
 cd src
-jupyter notebook phishing_detection_training.ipynb
+jupyter notebook training.ipynb
 ```
 
 Running the notebook will:
@@ -144,7 +144,7 @@ Running the notebook will:
 ### Command Line (Interactive)
 ```bash
 cd src
-python predict_url.py -i
+python predict.py -i
 ```
 
 Example output:
@@ -169,7 +169,7 @@ Enter URL: http://paypal-verify.xyz/secure/login
 
 ### Debug Mode (Show All Features)
 ```bash
-python predict_url.py -i
+python predict.py -i
 # Then enter: https://www.example.com --debug
 ```
 
