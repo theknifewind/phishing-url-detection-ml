@@ -267,6 +267,16 @@ While the feature set comes from the PhiUSIIL dataset, this project includes:
 
 ---
 
+## 💼 CV / Resume Bullet Points
+
+If you're using this project for your portfolio or resume, here are some suggested bullet points highlighting its achievements:
+
+- **Performance-focused:** "Developed a machine learning–based phishing URL detection system using a Random Forest Classifier, achieving an accuracy of **99.18%**, precision of **99.81%**, and recall of **98.28%** on a benchmark dataset."
+- **Comparison-focused:** "Built and evaluated a URL-only phishing detection model, outperforming a Logistic Regression baseline (98.95%) with a robust Random Forest architecture that attained **99.18% accuracy** and an **ROC-AUC of 99.74%**."
+- **Security-focused:** "Engineered a fast, offline phishing detection tool that prioritizes security and explainability, achieving a high precision rate of **99.81%** (minimizing false positives) and a recall of **98.28%** for reliable threat identification."
+
+---
+
 ## ⭐ Acknowledgments
 
 * [PhiUSIIL Phishing URL Dataset](https://www.kaggle.com/datasets/prishasawhney/phiusiil-phishing-url-dataset) - Original dataset and feature definitions
